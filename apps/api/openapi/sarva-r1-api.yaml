@@ -1,0 +1,418 @@
+openapi: 3.0.3
+info:
+  title: Sarva R1 Control Plane API
+  version: 0.2.3
+  description: |
+    Canonical surface expands with implementation — see Requirement/SARVA-DESIGN.md Part III (OpenAPI §6 analogue).
+    Shipped catalog paths include model bindings (`/api/v1/model-bindings`) with `scopeType` company | agent | role (team seat).
+    Additional paths (not all listed): org catalog, project repository-scope, PM propose/accept, integrations, cost/budget.
+servers:
+  - url: http://localhost:3000
+paths:
+  /health:
+    get:
+      summary: Liveness
+      responses:
+        "200":
+          description: OK
+  /api/v1/auth/login:
+    post:
+      summary: Dev JWT (TSD §5)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+                role:
+                  type: string
+                  enum: [admin, operator]
+      responses:
+        "200":
+          description: Token issued
+  /api/v1/tasks:
+    get:
+      summary: List tasks by project
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: projectId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Task list
+  /api/v1/tasks/{taskId}/claim:
+    post:
+      summary: Atomic claim (FR-132)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: taskId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [assigneeAgentId, expectedVersion]
+              properties:
+                assigneeAgentId:
+                  type: string
+                  format: uuid
+                expectedVersion:
+                  type: integer
+      responses:
+        "200":
+          description: Claimed
+        "409":
+          description: Conflict (TASK_CLAIM_CONFLICT)
+  /api/v1/tasks/{taskId}/run-automated-review:
+    post:
+      summary: Re-run reviewer LLM for automated approve/request_changes (manual retry)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: taskId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Step completed (check Chat/task state — may still stall on provider errors)
+        "409":
+          description: AUTOMATED_REVIEW_DISABLED or TASK_NOT_IN_REVIEW
+        "404":
+          description: Task not found
+  /api/v1/tasks/{taskId}:
+    get:
+      summary: Get one task
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: taskId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Task row
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "404":
+          description: Not found
+    patch:
+      summary: Update task (optimistic concurrency)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: taskId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskPatchRequest"
+      responses:
+        "200":
+          description: Updated task
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  task:
+                    $ref: "#/components/schemas/Task"
+        "409":
+          description: Version conflict
+  /api/v1/tasks/{taskId}/git/link-branch:
+    post:
+      summary: Link working branch / PR via MCP Git (INTEGRATION_MCP_GIT=live)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: taskId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Linked branch and optional PR URL
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  branch:
+                    type: string
+                  linkedPrUrl:
+                    type: string
+                    nullable: true
+        "400":
+          description: Missing clone URL or validation
+        "501":
+          description: MCP Git off
+        "502":
+          description: Gateway or transport error
+  /api/v1/projects/{projectId}/verify-dry-run:
+    post:
+      summary: Run pre-push verify from deliveryPolicy (dry run)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Verify result (ok, skipped, or failure details)
+        "400":
+          description: Invalid project id
+  /api/v1/projects/{projectId}/suggested-delivery-agents:
+    get:
+      summary: Suggest PM / SDM / TPM agents from linked team seat assignments (role templates)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Nullable agent ids and hint list for UI
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pmOrchestratorAgentId:
+                    type: string
+                    format: uuid
+                    nullable: true
+                  sdmDeliveryAgentId:
+                    type: string
+                    format: uuid
+                    nullable: true
+                  tpmSprintAgentId:
+                    type: string
+                    format: uuid
+                    nullable: true
+                  hints:
+                    type: array
+                    items:
+                      type: object
+        "400":
+          description: Invalid project id
+        "404":
+          description: Project not found
+  /api/v1/model-bindings:
+    get:
+      summary: List model bindings (LLM scope → provider connection)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Bindings (company, agent, or team role scope)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ModelBinding"
+  post:
+    summary: Create model binding (admin)
+    description: |
+      Exactly one scope: `company` (no scopeId), `agent` (agent id), or `role` (team `role` row id — a seat slot on a team).
+      Runtime resolution for orchestration is typically seat (role) → agent → company default, ordered by `priority` asc.
+    security: [{ bearerAuth: [] }]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ModelBindingCreateRequest"
+    responses:
+      "200":
+        description: Created binding
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ModelBinding"
+      "400":
+        description: Validation (e.g. missing scopeId for agent/role)
+  /api/v1/model-bindings/{id}:
+    delete:
+      summary: Delete model binding (admin)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [deleted]
+                properties:
+                  deleted:
+                    type: boolean
+  /api/v1/model-bindings/{id}/test:
+    post:
+      summary: Test binding credentials (admin)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Probe result
+        "400":
+          description: No connection on binding
+        "404":
+          description: Binding not found
+components:
+  schemas:
+    Task:
+      type: object
+      description: Prisma task row (subset documented for clients)
+      properties:
+        id:
+          type: string
+          format: uuid
+        projectId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        state:
+          type: string
+        version:
+          type: integer
+        linkedBranch:
+          type: string
+          nullable: true
+        linkedPrUrl:
+          type: string
+          nullable: true
+        targetRoleId:
+          type: string
+          format: uuid
+          nullable: true
+        sprintId:
+          type: string
+          format: uuid
+          nullable: true
+    TaskPatchRequest:
+      type: object
+      required: [expectedVersion]
+      properties:
+        expectedVersion:
+          type: integer
+          minimum: 1
+        state:
+          type: string
+        targetRoleId:
+          type: string
+          format: uuid
+          nullable: true
+        sprintId:
+          type: string
+          format: uuid
+          nullable: true
+        linkedBranch:
+          type: string
+          nullable: true
+          maxLength: 500
+          description: Branch name; null or "" clears; omit for no change
+        linkedPrUrl:
+          type: string
+          nullable: true
+          format: uri
+          description: PR URL; null or "" clears; omit for no change
+    ModelBindingCreateRequest:
+      type: object
+      required: [scopeType, llmProviderConnectionId]
+      properties:
+        scopeType:
+          type: string
+          enum: [company, agent, role]
+          description: role = team seat (`role` row id), not JWT role
+        scopeId:
+          type: string
+          format: uuid
+          description: Required when scopeType is agent or role
+        llmProviderConnectionId:
+          type: string
+          format: uuid
+        priority:
+          type: integer
+          default: 0
+          description: Lower values tried first when multiple bindings match the same scope tier
+    ModelBinding:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        modelId:
+          type: string
+        priority:
+          type: integer
+        companyId:
+          type: string
+          format: uuid
+          nullable: true
+        agentId:
+          type: string
+          format: uuid
+          nullable: true
+        roleId:
+          type: string
+          format: uuid
+          nullable: true
+        skillId:
+          type: string
+          format: uuid
+          nullable: true
+        llmProviderConnectionId:
+          type: string
+          format: uuid
+          nullable: true
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

@@ -1,0 +1,715 @@
+/**
+ * Sarva — application shell & components (uses Design/tokens.css)
+ * Selectors list mock names (banner, .card, …) and prefixed names (.sarva-banner, …).
+ */
+
+@import url("tokens.css");
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body,
+body.sarva-app {
+  margin: 0;
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: var(--sarva-sidebar-width) 1fr;
+  grid-template-rows: auto 1fr;
+}
+
+.banner,
+.sarva-banner {
+  grid-column: 1 / -1;
+  background: linear-gradient(90deg, var(--sarva-banner-gradient-start), var(--sarva-banner-gradient-end));
+  border-bottom: 1px solid var(--border);
+  padding: 0.55rem 1.25rem;
+  font-size: var(--sarva-text-sm);
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--sarva-space-2);
+}
+
+.banner strong,
+.sarva-banner strong {
+  color: var(--warning);
+}
+
+.banner a,
+.sarva-banner a {
+  color: var(--accent);
+}
+
+.banner code,
+.sarva-banner code {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--accent);
+}
+
+aside,
+.sarva-sidebar {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  padding: var(--sarva-space-4) 0;
+  overflow-y: auto;
+  max-height: 100vh;
+  position: sticky;
+  top: 0;
+  align-self: start;
+}
+
+.logo,
+.sarva-logo {
+  padding: 0 1rem 1rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: var(--sarva-space-3);
+}
+
+.logo h1,
+.sarva-logo h1 {
+  margin: 0;
+  font-size: var(--sarva-text-xl);
+  font-weight: 700;
+}
+
+.logo .sub,
+.sarva-logo .sarva-logo-sub {
+  font-size: 0.68rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: var(--sarva-tracking-wide);
+  line-height: 1.4;
+  margin-top: var(--sarva-space-1);
+}
+
+.r1-badge,
+.sarva-badge-r1 {
+  display: inline-block;
+  margin-top: var(--sarva-space-2);
+  font-size: var(--sarva-text-xs);
+  padding: 0.2rem 0.45rem;
+  border-radius: var(--sarva-radius-sm);
+  background: var(--accent-dim);
+  color: var(--accent);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+aside nav a,
+.sarva-nav a {
+  display: flex;
+  gap: 0.55rem;
+  padding: 0.48rem 1rem;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: var(--sarva-text-md);
+  border-left: 3px solid transparent;
+  align-items: center;
+}
+
+aside nav a:hover,
+.sarva-nav a:hover {
+  color: var(--text);
+  background: var(--surface2);
+}
+
+aside nav a.active,
+.sarva-nav a.active {
+  color: var(--accent);
+  background: var(--accent-dim);
+  border-left-color: var(--accent);
+}
+
+.nav-section,
+.sarva-nav-section {
+  font-size: var(--sarva-text-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--sarva-tracking-wider);
+  color: var(--muted);
+  padding: 1rem 1rem 0.3rem;
+}
+
+main,
+.sarva-main {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 0;
+}
+
+header.top,
+.sarva-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.8rem var(--sarva-space-6);
+  border-bottom: 1px solid var(--border);
+  gap: var(--sarva-space-4);
+  flex-wrap: wrap;
+  background: var(--bg);
+  position: sticky;
+  top: 0;
+  z-index: var(--sarva-topbar-z);
+}
+
+.page-heading,
+.sarva-page-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+  flex: 1;
+  min-width: 120px;
+}
+
+.project-pick,
+.sarva-project-pick {
+  display: flex;
+  align-items: center;
+  gap: var(--sarva-space-2);
+  flex-wrap: wrap;
+}
+
+.project-pick label,
+.sarva-project-pick label {
+  font-size: var(--sarva-text-sm);
+  color: var(--muted);
+}
+
+.project-pick select,
+.sarva-project-pick select {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 0.35rem 0.65rem;
+  border-radius: var(--sarva-radius-md);
+  font-family: inherit;
+  font-size: var(--sarva-text-base);
+  min-width: 200px;
+}
+
+.search,
+.sarva-search {
+  flex: 1;
+  max-width: 320px;
+  min-width: 140px;
+}
+
+.search input,
+.sarva-search input {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--sarva-radius-lg);
+  padding: 0.45rem 0.75rem;
+  color: var(--text);
+  font-family: inherit;
+  font-size: var(--sarva-text-base);
+}
+
+.user,
+.sarva-user {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: var(--sarva-text-base);
+  color: var(--muted);
+}
+
+.avatar,
+.sarva-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--sarva-accent-secondary));
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 0.75rem;
+  color: var(--sarva-text-inverse);
+  flex-shrink: 0;
+}
+
+#views {
+  flex: 1;
+  overflow: auto;
+  padding: 1.15rem var(--sarva-space-6) 2rem;
+}
+
+.view,
+.sarva-view {
+  display: none;
+  animation: sarva-fade var(--sarva-duration-fast) var(--sarva-ease-out);
+}
+
+.view.active,
+.sarva-view.active {
+  display: block;
+}
+
+@keyframes sarva-fade {
+  from {
+    opacity: 0.75;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+h2.section-title,
+h2.sarva-section-title {
+  margin: 0 0 0.85rem;
+  font-size: var(--sarva-text-lg);
+  font-weight: 600;
+}
+
+h3.sub-title,
+h3.sarva-sub-title {
+  margin: 1rem 0 0.5rem;
+  font-size: var(--sarva-text-base);
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.grid-stats,
+.sarva-grid-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.65rem;
+  margin-bottom: var(--sarva-space-4);
+}
+
+.stat-card,
+.sarva-stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.85rem;
+}
+
+.stat-card label,
+.sarva-stat-card label {
+  display: block;
+  font-size: var(--sarva-text-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--sarva-tracking-wide);
+  color: var(--muted);
+  margin-bottom: 0.3rem;
+}
+
+.stat-card .value,
+.sarva-stat-card .sarva-stat-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  font-family: var(--mono);
+}
+
+.stat-card .sub,
+.sarva-stat-card .sarva-stat-sub {
+  font-size: 0.68rem;
+  color: var(--muted);
+  margin-top: 0.2rem;
+}
+
+.card,
+.sarva-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--sarva-space-4);
+  margin-bottom: var(--sarva-space-4);
+}
+
+.card-head,
+.sarva-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+  gap: var(--sarva-space-2);
+}
+
+.card-head h3,
+.sarva-card-head h3 {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+.two-col,
+.sarva-two-col {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: var(--sarva-space-4);
+}
+
+.menu-btn,
+.sarva-menu-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 0.35rem 0.6rem;
+  border-radius: var(--sarva-radius-md);
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+@media (max-width: 1024px) {
+  body,
+  body.sarva-app {
+    grid-template-columns: 1fr;
+  }
+
+  .two-col,
+  .sarva-two-col {
+    grid-template-columns: 1fr;
+  }
+
+  aside,
+  .sarva-sidebar {
+    display: none;
+    position: fixed;
+    z-index: var(--sarva-sidebar-overlay-z);
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: var(--sarva-sidebar-width);
+    box-shadow: 8px 0 24px rgba(0, 0, 0, 0.45);
+  }
+
+  aside.open,
+  .sarva-sidebar.open {
+    display: block;
+  }
+
+  .menu-btn,
+  .sarva-menu-btn {
+    display: inline-flex !important;
+  }
+}
+
+table.data,
+table.sarva-data {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--sarva-text-base);
+}
+
+table.data th,
+table.data td,
+table.sarva-data th,
+table.sarva-data td {
+  padding: 0.5rem 0.55rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+table.data th,
+table.sarva-data th {
+  color: var(--muted);
+  font-weight: 500;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+table.data tr:hover td,
+table.sarva-data tr:hover td {
+  background: var(--surface2);
+}
+
+.badge,
+.sarva-badge {
+  display: inline-block;
+  font-size: 0.65rem;
+  padding: 0.12rem 0.4rem;
+  border-radius: var(--sarva-radius-sm);
+  font-weight: 500;
+}
+
+.badge-blue,
+.sarva-badge-blue {
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
+.badge-green,
+.sarva-badge-green {
+  background: var(--sarva-success-bg);
+  color: var(--success);
+}
+
+.badge-amber,
+.sarva-badge-amber {
+  background: var(--sarva-warning-bg);
+  color: var(--warning);
+}
+
+.badge-gray,
+.sarva-badge-gray {
+  background: var(--surface2);
+  color: var(--muted);
+}
+
+.btn,
+.sarva-btn {
+  display: inline-block;
+  padding: 0.38rem 0.72rem;
+  border-radius: var(--sarva-radius-md);
+  font-size: 0.76rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.btn-primary,
+.sarva-btn-primary {
+  background: var(--accent);
+  color: #fff;
+}
+
+.btn-ghost,
+.sarva-btn-ghost {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.btn-sm,
+.sarva-btn-sm {
+  padding: 0.22rem 0.45rem;
+  font-size: 0.68rem;
+}
+
+.tabs,
+.sarva-tabs {
+  display: flex;
+  gap: 0.2rem;
+  margin-bottom: 0.85rem;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.tabs button,
+.sarva-tabs button {
+  background: none;
+  border: none;
+  color: var(--muted);
+  padding: 0.45rem 0.75rem;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--sarva-text-base);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+
+.tabs button.active,
+.sarva-tabs button.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.panel,
+.sarva-panel {
+  display: none;
+}
+
+.panel.active,
+.sarva-panel.active {
+  display: block;
+}
+
+.board,
+.sarva-board {
+  display: flex;
+  gap: 0.55rem;
+  overflow-x: auto;
+  padding-bottom: 0.45rem;
+}
+
+.column,
+.sarva-column {
+  min-width: 168px;
+  background: var(--surface2);
+  border-radius: var(--sarva-radius-lg);
+  padding: 0.45rem;
+  flex-shrink: 0;
+}
+
+.column h4,
+.sarva-column h4 {
+  margin: 0 0 0.45rem;
+  font-size: var(--sarva-text-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--sarva-tracking-wide);
+  color: var(--muted);
+}
+
+.task-pill,
+.sarva-task-pill {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--sarva-radius-md);
+  padding: 0.4rem 0.5rem;
+  font-size: 0.76rem;
+  margin-bottom: 0.32rem;
+  cursor: default;
+}
+
+.task-pill strong,
+.sarva-task-pill strong {
+  display: block;
+  font-size: 0.78rem;
+}
+
+.task-pill small,
+.sarva-task-pill small {
+  color: var(--muted);
+  font-size: 0.65rem;
+}
+
+.tag,
+.sarva-tag {
+  display: inline-block;
+  font-size: 0.58rem;
+  padding: 0.1rem 0.32rem;
+  border-radius: var(--sarva-radius-sm);
+  background: var(--accent-dim);
+  color: var(--accent);
+  margin-top: 0.28rem;
+}
+
+.muted,
+.sarva-muted {
+  color: var(--muted);
+  font-size: var(--sarva-text-base);
+  line-height: var(--sarva-leading-normal);
+}
+
+.mono,
+.sarva-mono {
+  font-family: var(--mono);
+  font-size: 0.74rem;
+}
+
+.req-box,
+.sarva-req-box {
+  background: var(--surface2);
+  border: 1px dashed var(--border);
+  border-radius: var(--sarva-radius-lg);
+  padding: 0.75rem;
+  font-size: var(--sarva-text-base);
+  max-height: 140px;
+  overflow-y: auto;
+  margin-bottom: 0.65rem;
+}
+
+.proposed,
+.sarva-proposed {
+  border-left: 3px solid var(--success);
+  padding-left: 0.65rem;
+  margin: 0.45rem 0;
+  font-size: var(--sarva-text-base);
+}
+
+.phase2-box,
+.sarva-phase2-box {
+  border: 1px dashed var(--phase2);
+  border-radius: var(--radius);
+  padding: 0.85rem;
+  background: var(--sarva-phase2-bg);
+  margin-top: var(--sarva-space-4);
+}
+
+.phase2-box h4,
+.sarva-phase2-box h4 {
+  margin: 0 0 0.4rem;
+  font-size: var(--sarva-text-base);
+  color: var(--phase2);
+}
+
+.budget-bar,
+.sarva-budget-bar {
+  height: 5px;
+  background: var(--surface2);
+  border-radius: 3px;
+  margin-top: 0.35rem;
+  overflow: hidden;
+}
+
+.budget-bar i,
+.sarva-budget-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--success), var(--accent));
+}
+
+.form-row,
+.sarva-form-row {
+  margin-bottom: 0.65rem;
+}
+
+.form-row label,
+.sarva-form-row label {
+  display: block;
+  font-size: var(--sarva-text-sm);
+  color: var(--muted);
+  margin-bottom: 0.28rem;
+}
+
+.form-row input,
+.form-row select,
+.form-row textarea,
+.sarva-form-row input,
+.sarva-form-row select,
+.sarva-form-row textarea {
+  width: 100%;
+  max-width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--sarva-radius-md);
+  padding: 0.4rem 0.55rem;
+  color: var(--text);
+  font-family: inherit;
+  font-size: var(--sarva-text-base);
+}
+
+.split-delivery,
+.sarva-split-delivery {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: var(--sarva-space-4);
+}
+
+@media (max-width: 900px) {
+  .split-delivery,
+  .sarva-split-delivery {
+    grid-template-columns: 1fr;
+  }
+}
+
+.kpi-inline,
+.sarva-kpi-inline {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-top: 0.35rem;
+}

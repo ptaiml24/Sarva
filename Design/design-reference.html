@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sarva — design reference</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./sarva-app.css" />
+  <style>
+    /* Single-column page: app shell grid targets sidebar + main */
+    body {
+      display: block;
+    }
+
+    .ref-page { max-width: 960px; margin: 0 auto; padding: 1.5rem; }
+    .ref-page h1 { margin: 0 0 0.5rem; font-size: 1.35rem; }
+    .ref-lead { color: var(--muted); font-size: var(--sarva-text-base); margin: 0 0 1.5rem; }
+    .ref-block { margin-bottom: 2rem; }
+    .ref-block h2 { font-size: var(--sarva-text-lg); margin: 0 0 0.75rem; }
+    .swatch-row { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+    .swatch { width: 88px; height: 56px; border-radius: var(--sarva-radius-md); border: 1px solid var(--border); }
+    .swatch span { display: block; font-size: var(--sarva-text-xs); color: var(--muted); margin-top: 0.35rem; }
+    .token-table { width: 100%; border-collapse: collapse; font-size: var(--sarva-text-sm); }
+    .token-table th, .token-table td { padding: 0.4rem 0.5rem; text-align: left; border-bottom: 1px solid var(--border); }
+    .token-table th { color: var(--muted); font-weight: 500; }
+    .token-table code { font-family: var(--mono); font-size: 0.7rem; }
+  </style>
+</head>
+<body>
+  <div class="banner">
+    <span><strong>Design reference</strong> — tokens + components · not a product screen</span>
+  </div>
+  <main class="sarva-main" style="min-height: auto;">
+    <div id="views" style="padding: 0;">
+      <div class="ref-page">
+        <h1 class="sarva-page-title" style="margin-bottom: 0.25rem;">Sarva UI kit</h1>
+        <p class="ref-lead">Preview of <code>tokens.css</code> and <code>sarva-app.css</code>. Open this file from disk or serve the repo; styles resolve relative to <code>Design/</code>.</p>
+
+        <div class="ref-block">
+          <h2>Semantic colors</h2>
+          <div class="swatch-row">
+            <div><div class="swatch" style="background: var(--sarva-bg);"></div><span>bg</span></div>
+            <div><div class="swatch" style="background: var(--sarva-surface);"></div><span>surface</span></div>
+            <div><div class="swatch" style="background: var(--sarva-accent);"></div><span>accent</span></div>
+            <div><div class="swatch" style="background: var(--sarva-success);"></div><span>success</span></div>
+            <div><div class="swatch" style="background: var(--sarva-warning);"></div><span>warning</span></div>
+            <div><div class="swatch" style="background: var(--sarva-danger);"></div><span>danger</span></div>
+          </div>
+        </div>
+
+        <div class="ref-block">
+          <h2>Sample tokens</h2>
+          <table class="token-table">
+            <thead><tr><th>Token</th><th>Sample</th></tr></thead>
+            <tbody>
+              <tr><td><code>--sarva-radius-xl</code></td><td style="border-radius: var(--sarva-radius-xl); background: var(--surface2); padding: 0.5rem;">rounded box</td></tr>
+              <tr><td><code>--sarva-sidebar-width</code></td><td><span class="mono" style="font-size: var(--sarva-text-sm);">258px</span> (layout)</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="ref-block">
+          <h2>Buttons &amp; badges</h2>
+          <p style="margin: 0 0 0.75rem;">
+            <button type="button" class="btn btn-primary btn-sm">Primary</button>
+            <button type="button" class="btn btn-ghost btn-sm">Ghost</button>
+            <span class="badge badge-blue">Blue</span>
+            <span class="badge badge-green">Green</span>
+            <span class="badge badge-amber">Amber</span>
+            <span class="badge badge-gray">Gray</span>
+          </p>
+        </div>
+
+        <div class="ref-block">
+          <h2>Card</h2>
+          <div class="card" style="max-width: 420px;">
+            <div class="card-head"><h3>Example</h3><button type="button" class="btn btn-primary btn-sm">Action</button></div>
+            <p class="muted" style="margin:0">Body text uses <span class="mono">.muted</span> and <span class="mono">.mono</span> for code.</p>
+          </div>
+        </div>
+
+        <div class="ref-block">
+          <h2>Tabs &amp; table</h2>
+          <div class="tabs" role="tablist">
+            <button type="button" class="active">One</button>
+            <button type="button">Two</button>
+          </div>
+          <div class="panel active">
+            <table class="data">
+              <thead><tr><th>Col A</th><th>Col B</th></tr></thead>
+              <tbody><tr><td>Alpha</td><td><span class="badge badge-green">OK</span></td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

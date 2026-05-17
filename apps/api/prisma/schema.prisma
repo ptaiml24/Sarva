@@ -1,0 +1,622 @@
+// Canonical domain mapping — Requirement/SARVA-DESIGN.md Part II (~ LLD §3.1).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Company {
+  id       String         @id @default(uuid()) @db.Uuid
+  name     String
+  settings Json           @default("{}")
+  /** GitHub user or organization login under which new repos are created (Admin → GitHub publishing). */
+  githubOwnerLogin            String?  @map("github_owner_login")
+  /** When true, `githubOwnerLogin` is treated as an org; otherwise repos are created under the authenticated user. */
+  githubOwnerIsOrganization   Boolean  @default(false) @map("github_owner_is_organization")
+  /** Fine-grained or classic PAT with `repo` (and org admin for org-owned repos). Never returned by read APIs. */
+  githubPat                   String?  @map("github_pat")
+  /** Default visibility for repos created via Publish to GitHub. */
+  githubReposPrivateByDefault Boolean  @default(true) @map("github_repos_private_by_default")
+  skills   Skill[]
+  budgets  Budget[]       @relation("CompanyBudget")
+  bu       BusinessUnit[]
+  bindings ModelBinding[]
+  llmProviderConnections LlmProviderConnection[]
+}
+
+model BusinessUnit {
+  id        String @id @default(uuid()) @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name      String
+  teams     Team[]
+
+  @@map("business_unit")
+}
+
+model User {
+  id        String   @id @default(uuid()) @db.Uuid
+  email     String   @unique
+  comments  TaskComment[]
+  approvals Approval[]
+  auditEvents AuditEvent[]
+  projectsApproved Project[] @relation("DesignatedApprover")
+  assignedProjectIssues ProjectIssue[]
+}
+
+model Agent {
+  id        String     @id @default(uuid()) @db.Uuid
+  name      String
+  status    String
+  seats     AgentSeat[]
+  tasks     Task[]     @relation("TaskAssignee")
+  tasksAsImplementer Task[] @relation("TaskImplementer")
+  pmProjects Project[] @relation("PmOrchestrator")
+  projectRoleAssignments ProjectRoleAssignment[]
+  modelBindings ModelBinding[]
+  costEvents CostEvent[] @relation("AgentCost")
+  budgets  Budget[]   @relation("AgentBudget")
+}
+
+/// Delivery workflow template (greenfield vs feature). Builtin rows are seeded; admins may add custom rows.
+model DeliveryWorkflow {
+  id          String    @id @default(uuid()) @db.Uuid
+  code        String    @unique
+  name        String
+  description String?
+  /// full_e2e | feature_dev — feature_dev requires repository scope (clone URL or root path).
+  kind        String    @map("kind")
+  isBuiltin   Boolean   @default(false) @map("is_builtin")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  projects    Project[]
+
+  @@map("delivery_workflow")
+}
+
+/// Company-scoped skill row (e.g. model bindings). Team roles use `SkillTemplate` via `RoleSkillLink`.
+model Skill {
+  id        String      @id @default(uuid()) @db.Uuid
+  companyId String    @map("company_id") @db.Uuid
+  company   Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name      String
+  bindings  ModelBinding[]
+
+  @@index([companyId])
+  @@map("skill")
+}
+
+/// Sarva product catalog — roles offered to teams (Engineer, QA, SDM, …).
+model RoleTemplate {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @unique
+  label       String
+  description String?
+  sortOrder   Int      @default(0) @map("sort_order")
+  roles       Role[]
+  allowedSkills RoleTemplateSkill[]
+
+  @@map("role_template")
+}
+
+/// Sarva product catalog — skills (Coder, Code reviewer, …).
+model SkillTemplate {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @unique
+  label       String
+  description String?
+  /** Instructions for how an agent should behave when this skill is active (system-style prompt). */
+  agentPrompt String?  @map("agent_prompt")
+  sortOrder   Int      @default(0) @map("sort_order")
+  roleTemplates RoleTemplateSkill[]
+  roleLinks   RoleSkillLink[]
+
+  @@map("skill_template")
+}
+
+/// Which skill templates each Sarva role may use (for UI when linking skills to team seats).
+model RoleTemplateSkill {
+  roleTemplateId   String @map("role_template_id") @db.Uuid
+  skillTemplateId  String @map("skill_template_id") @db.Uuid
+  roleTemplate     RoleTemplate @relation(fields: [roleTemplateId], references: [id], onDelete: Cascade)
+  skillTemplate    SkillTemplate @relation(fields: [skillTemplateId], references: [id], onDelete: Cascade)
+
+  @@id([roleTemplateId, skillTemplateId])
+  @@map("role_template_skill")
+}
+
+model Team {
+  id               String       @id @default(uuid()) @db.Uuid
+  businessUnitId   String?      @map("business_unit_id") @db.Uuid
+  businessUnit     BusinessUnit? @relation(fields: [businessUnitId], references: [id], onDelete: SetNull)
+  name             String
+  charter          String?
+  roles            Role[]
+  teamProjects     TeamProject[]
+
+  @@map("team")
+}
+
+/// One seat / slot on a team — tied to a Sarva `RoleTemplate` (e.g. "Engineer 2").
+model Role {
+  id             String       @id @default(uuid()) @db.Uuid
+  teamId         String       @map("team_id") @db.Uuid
+  team           Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  name           String
+  roleTemplateId String?      @map("role_template_id") @db.Uuid
+  roleTemplate   RoleTemplate?  @relation(fields: [roleTemplateId], references: [id], onDelete: SetNull)
+  skillLinks     RoleSkillLink[]
+  seats          AgentSeat[]
+  bindings       ModelBinding[]
+  targetedTasks  Task[]       @relation("TaskTargetRole")
+  ownedProjectIssues ProjectIssue[] @relation("ProjectIssueOwnerRole")
+
+  @@map("role")
+}
+
+model RoleSkillLink {
+  roleId          String        @map("role_id") @db.Uuid
+  skillTemplateId String        @map("skill_template_id") @db.Uuid
+  role            Role          @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  skillTemplate   SkillTemplate @relation(fields: [skillTemplateId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, skillTemplateId])
+  @@map("role_skill_link")
+}
+
+model AgentSeat {
+  id                String  @id @default(uuid()) @db.Uuid
+  roleId            String  @map("role_id") @db.Uuid
+  role              Role    @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  assignedAgentId   String? @map("assigned_agent_id") @db.Uuid
+  assignedAgent     Agent?  @relation(fields: [assignedAgentId], references: [id], onDelete: SetNull)
+  label             String?
+
+  @@map("agent_seat")
+}
+
+/// Saved provider + model + credentials; bindings reference this instead of raw model ids.
+model LlmProviderConnection {
+  id          String   @id @default(uuid()) @db.Uuid
+  companyId   String   @map("company_id") @db.Uuid
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name        String
+  /** openai | anthropic | google | ollama | meta */
+  provider    String
+  modelId     String   @map("model_id")
+  baseUrl     String?  @map("base_url")
+  apiKey      String?  @map("api_key")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  bindings    ModelBinding[]
+
+  @@index([companyId])
+  @@map("llm_provider_connection")
+}
+
+// Exactly one of companyId, roleId, skillId, agentId set — enforced in app (LLD polymorphic)
+model ModelBinding {
+  id        String  @id @default(uuid()) @db.Uuid
+  companyId String? @map("company_id") @db.Uuid
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  roleId    String? @map("role_id") @db.Uuid
+  role      Role?   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  skillId   String? @map("skill_id") @db.Uuid
+  skill     Skill?  @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  agentId   String? @map("agent_id") @db.Uuid
+  agent     Agent?  @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  llmProviderConnectionId String? @map("llm_provider_connection_id") @db.Uuid
+  llmProviderConnection   LlmProviderConnection? @relation(fields: [llmProviderConnectionId], references: [id], onDelete: Restrict)
+  /** Denormalized from connection, or legacy env-only binding when connection is null */
+  modelId   String  @map("model_id")
+  priority  Int     @default(0)
+
+  @@map("model_binding")
+}
+
+model Project {
+  id                        String   @id @default(uuid()) @db.Uuid
+  name                      String
+  repoAssociationMode       String   @map("repo_association_mode")
+  /** intake | design | delivery | sustain — lightweight SDLC phase for R1 UI/gates */
+  deliveryPhase             String?  @map("delivery_phase")
+  /**
+   * SOP delivery pipeline: draft → delivery_active → backlog_proposed → backlog_approved → executing → ready_for_uat → closed
+ * See also Requirement/SARVA-DESIGN.md (delivery / implementation pipeline).
+   */
+  implementationStatus      String   @default("draft") @map("implementation_status")
+  /** Set when operator clicks Proceed (intake baseline for orchestration). */
+  intakeBaselineAt          DateTime? @map("intake_baseline_at") @db.Timestamptz(6)
+  readyForUat               Boolean  @default(false) @map("ready_for_uat")
+  backlogFeedbackNotes      String?  @map("backlog_feedback_notes")
+  pmOrchestratorAgentId     String?  @map("pm_orchestrator_agent_id") @db.Uuid
+  pmOrchestratorAgent       Agent?   @relation("PmOrchestrator", fields: [pmOrchestratorAgentId], references: [id], onDelete: SetNull)
+  designatedApproverUserId  String?  @map("designated_approver_user_id") @db.Uuid
+  designatedApprover        User?    @relation("DesignatedApprover", fields: [designatedApproverUserId], references: [id], onDelete: SetNull)
+  governanceMode            String?  @map("governance_mode")
+  deliveryPolicy            Json?    @map("delivery_policy")
+  /** Absolute path on the API host where agent workspace was scaffolded (see SARVA_AGENT_WORKSPACE). */
+  devWorkspacePath          String?  @map("dev_workspace_path")
+  workflowId                String?  @map("workflow_id") @db.Uuid
+  workflow                  DeliveryWorkflow? @relation(fields: [workflowId], references: [id], onDelete: SetNull)
+  attachments               ProjectAttachment[]
+  prdArtifacts              PrdArtifact[]
+  chatMessages              ProjectChatMessage[]
+  sprints                   Sprint[]
+  tasks                     Task[]
+  teamLinks                 TeamProject[]
+  context                   ProjectContext?
+  repoScope                 RepositoryScope?
+  proposedItems             ProposedBacklogItem[]
+  designArtifacts           DesignArtifact[]
+  roleAssignments           ProjectRoleAssignment[]
+  deliveryOrchestrationPasses   DeliveryOrchestrationPass[]
+  deliveryAsyncJobs          DeliveryAsyncJob[]
+  orchestrationBindingAttempts OrchestrationBindingAttempt[]
+  issues                    ProjectIssue[]
+
+  @@map("project")
+}
+
+/// Persisted telemetry for orchestration hook / HTTP-triggered passes (timeline + correlation).
+model DeliveryOrchestrationPass {
+  id                  String    @id @default(uuid()) @db.Uuid
+  projectId           String    @map("project_id") @db.Uuid
+  project             Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  promotedCount       Int       @map("promoted_count")
+  assignedCount       Int       @map("assigned_count")
+  startedCount        Int       @map("started_count")
+  coderRunsCount      Int       @map("coder_runs_count")
+  coderSubmittedCount Int       @default(0) @map("coder_submitted_count")
+  surfacedEffects     Boolean   @default(false) @map("surfaced_effects")
+  /** hook | http_run */
+  source              String    @default("hook")
+  correlationId       String?   @map("correlation_id")
+  partialErrors       Json?     @map("partial_errors")
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([projectId, createdAt(sort: Desc)])
+  @@map("delivery_orchestration_pass")
+}
+
+/// Minimal async-job row for telemetry (runs may still be synchronous; records status + payloads).
+model DeliveryAsyncJob {
+  id             String    @id @default(uuid()) @db.Uuid
+  projectId      String    @map("project_id") @db.Uuid
+  project        Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  kind           String
+  status         String    @default("completed")
+  payload        Json      @default("{}")
+  result         Json?
+  error          String?
+  correlationId  String?   @map("correlation_id")
+  startedAt      DateTime  @default(now()) @map("started_at") @db.Timestamptz(6)
+  finishedAt     DateTime? @map("finished_at") @db.Timestamptz(6)
+
+  @@index([projectId, startedAt(sort: Desc)])
+  @@map("delivery_async_job")
+}
+
+/// One row per successful LLM binding pick (or exhaustion summary) inside binding fallback loops.
+model OrchestrationBindingAttempt {
+  id           String    @id @default(uuid()) @db.Uuid
+  projectId    String?   @map("project_id") @db.Uuid
+  project      Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  workflow     String?
+  agentId      String?   @map("agent_id") @db.Uuid
+  roleId       String?   @map("role_id") @db.Uuid
+  bindingId    String?   @map("binding_id") @db.Uuid
+  provider     String?
+  modelId      String?   @map("model_id")
+  modelLabel   String?   @map("model_label")
+  scopeHint    String?   @map("scope_hint")
+  success      Boolean   @default(false)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([projectId, createdAt(sort: Desc)])
+  @@map("orchestration_binding_attempt")
+}
+
+model ProjectContext {
+  projectId         String   @id @map("project_id") @db.Uuid
+  project           Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  requirementsLinks Json   @default("[]") @map("requirements_links")
+  repoScope         String?  @map("repo_scope")
+  brief             String?
+  /** High-level goals / outcomes (plain text). */
+  goals             String?
+  /** Optional documentation repository URL (Confluence, wiki, second git remote). */
+  documentRepositoryUrl String? @map("document_repository_url")
+  analysisNotes     String?  @map("analysis_notes")
+
+  @@map("project_context")
+}
+
+/// SDM / TPM (and optional PM) agents assigned to a project for SDLC narrative and future RBAC.
+model ProjectRoleAssignment {
+  id        String  @id @default(uuid()) @db.Uuid
+  projectId String  @map("project_id") @db.Uuid
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  agentId   String  @map("agent_id") @db.Uuid
+  agent     Agent   @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  /** sdm_delivery | tpm_sprint — PM orchestrator remains on `Project.pmOrchestratorAgentId`. */
+  duty      String  @map("duty")
+
+  @@unique([projectId, duty])
+  @@map("project_role_assignment")
+}
+
+/// Lightweight design record (HLD-lite / notes); tasks may reference in future iterations.
+model DesignArtifact {
+  id        String   @id @default(uuid()) @db.Uuid
+  projectId String   @map("project_id") @db.Uuid
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title     String
+  body      String   @default("")
+  status    String   @default("draft")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("design_artifact")
+}
+
+model RepositoryScope {
+  projectId     String  @id @map("project_id") @db.Uuid
+  project       Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  cloneUrl      String? @map("clone_url")
+  rootPath      String? @map("root_path")
+  branchDefault String? @map("branch_default")
+
+  @@map("repository_scope")
+}
+
+model ProjectAttachment {
+  id        String   @id @default(uuid()) @db.Uuid
+  projectId String   @map("project_id") @db.Uuid
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  fileName  String   @map("file_name")
+  mimeType  String   @default("application/octet-stream") @map("mime_type")
+  byteSize  Int      @map("byte_size")
+  data      Bytes
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([projectId])
+  @@map("project_attachment")
+}
+
+/// Product requirements document (PRD) for workflow-mode projects.
+model PrdArtifact {
+  id            String   @id @default(uuid()) @db.Uuid
+  projectId     String   @map("project_id") @db.Uuid
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title         String   @default("Product requirements")
+  body          String   @default("")
+  status        String   @default("draft")
+  feedbackNotes String?  @map("feedback_notes")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([projectId])
+  @@map("prd_artifact")
+}
+
+model ProjectChatMessage {
+  id         String   @id @default(uuid()) @db.Uuid
+  projectId  String   @map("project_id") @db.Uuid
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  actorKind  String   @map("actor_kind")
+  actorId    String?  @map("actor_id") @db.Uuid
+  actorLabel String   @map("actor_label")
+  body       String
+  meta       Json     @default("{}")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([projectId, createdAt])
+  @@map("project_chat_message")
+}
+
+model TeamProject {
+  teamId    String @map("team_id") @db.Uuid
+  projectId String @map("project_id") @db.Uuid
+  team      Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@id([teamId, projectId])
+  @@map("team_project")
+}
+
+/// Code-review / QA / defect-style issue tracked per project — assigned User with optional Seat/Role owner lane.
+model ProjectIssue {
+  id               String    @id @default(uuid()) @db.Uuid
+  projectId        String    @map("project_id") @db.Uuid
+  project          Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  /** Monotonic per-project display id (#1, #2, …). */
+  issueNumber      Int       @map("issue_number")
+  title            String
+  description      String    @default("")
+  /** open | closed | deferred */
+  status           String    @default("open")
+  assignedUserId   String    @map("assigned_user_id") @db.Uuid
+  assignedUser     User      @relation(fields: [assignedUserId], references: [id], onDelete: Restrict)
+  /** Owning seat lane (team role) working the issue — optional when still triaging. */
+  ownerRoleId      String?   @map("owner_role_id") @db.Uuid
+  ownerRole        Role?     @relation("ProjectIssueOwnerRole", fields: [ownerRoleId], references: [id], onDelete: SetNull)
+  /** Delivery-board task spun up to resolve this issue (seat lane → coder orchestration when execution is live). */
+  linkedTaskId     String?   @unique @map("linked_task_id") @db.Uuid
+  linkedTask       Task?     @relation("ProjectIssueLinkedTask", fields: [linkedTaskId], references: [id], onDelete: SetNull)
+  closedAt         DateTime? @map("closed_at") @db.Timestamptz(6)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([projectId, issueNumber])
+  @@index([projectId, status])
+  @@map("project_issue")
+}
+
+model Sprint {
+  id        String   @id @default(uuid()) @db.Uuid
+  projectId String   @map("project_id") @db.Uuid
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name      String
+  startsAt  DateTime? @map("starts_at") @db.Timestamptz(6)
+  endsAt    DateTime? @map("ends_at") @db.Timestamptz(6)
+  tasks     Task[]
+
+  @@map("sprint")
+}
+
+model Task {
+  id                String   @id @default(uuid()) @db.Uuid
+  projectId         String   @map("project_id") @db.Uuid
+  project           Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sprintId          String?  @map("sprint_id") @db.Uuid
+  sprint            Sprint?  @relation(fields: [sprintId], references: [id], onDelete: SetNull)
+  title             String
+  description       String?
+  state             String
+  assigneeAgentId   String?  @map("assignee_agent_id") @db.Uuid
+  assigneeAgent     Agent?   @relation("TaskAssignee", fields: [assigneeAgentId], references: [id], onDelete: SetNull)
+  /** Agent that implemented the task (coder); restored on “request changes”. */
+  implementingAgentId String? @map("implementing_agent_id") @db.Uuid
+  implementingAgent Agent?   @relation("TaskImplementer", fields: [implementingAgentId], references: [id], onDelete: SetNull)
+  targetRoleId      String?  @map("target_role_id") @db.Uuid
+  targetRole        Role?    @relation("TaskTargetRole", fields: [targetRoleId], references: [id], onDelete: SetNull)
+  skillTags         String[] @default([]) @map("skill_tags")
+  priority          String?
+  /** R5: operator or orchestrator sets when work is blocked pending resolution. */
+  blockedReason     String?  @map("blocked_reason")
+  escalationStrikes Int      @default(0) @map("escalation_strikes")
+  linkedBranch      String?  @map("linked_branch")
+  linkedPrUrl       String?  @map("linked_pr_url")
+  /**
+   * Gating for parallel work: all tasks in the same project with a lower phase must be `done`
+   * before any task in this phase can be claimed (`in_progress`). 0 = foundation (repo, scaffold, first push); 1+ = later waves.
+   */
+  executionPhase    Int      @default(0) @map("execution_phase")
+  /** Latest coder-agent LLM output (markdown: proposed files / patches); not a substitute for git. */
+  agentGeneratedBody String? @map("agent_generated_body")
+  agentGeneratedAt   DateTime? @map("agent_generated_at") @db.Timestamptz(6)
+  /** SDM-facing handoff when the task enters review (LLM or template). */
+  reviewHandoffMarkdown String? @map("review_handoff_markdown")
+  /** Times this task moved review → in_progress for fixes (manual or automated reviewer). Capped when configured. Resets on approve. */
+  reviewRevisionCount   Int @default(0) @map("review_revision_count")
+  version           Int      @default(1)
+  comments          TaskComment[]
+  costEvents        CostEvent[] @relation("TaskCost")
+  /** This task must not start until each predecessor task is `done`. */
+  dependsOn         TaskDependency[] @relation("TaskDependencySuccessor")
+  /** Tasks that list this task as a predecessor. */
+  dependents        TaskDependency[] @relation("TaskDependencyPredecessor")
+  /**
+   * From PM propose: predecessor titles not yet matched to tasks. Cleared as `TaskDependency` rows are created
+   * (accept order may differ from proposal order).
+   */
+  dependencyHints   Json?    @map("dependency_hints")
+  /** Exactly one Issue may link here when the seat-owned issue opens a backlog task to fix itself. */
+  linkedFromIssue   ProjectIssue? @relation("ProjectIssueLinkedTask")
+
+  @@index([projectId, state])
+  @@index([assigneeAgentId])
+  @@index([implementingAgentId])
+  @@index([targetRoleId])
+  @@map("task")
+}
+
+/// Directed "finish predecessor before successor" link within one project (enforced on claim / auto-start).
+model TaskDependency {
+  successorTaskId    String @map("successor_task_id") @db.Uuid
+  predecessorTaskId  String @map("predecessor_task_id") @db.Uuid
+  successor          Task @relation("TaskDependencySuccessor", fields: [successorTaskId], references: [id], onDelete: Cascade)
+  predecessor        Task @relation("TaskDependencyPredecessor", fields: [predecessorTaskId], references: [id], onDelete: Cascade)
+
+  @@id([successorTaskId, predecessorTaskId])
+  @@index([predecessorTaskId])
+  @@map("task_dependency")
+}
+
+model TaskComment {
+  id        String   @id @default(uuid()) @db.Uuid
+  taskId    String   @map("task_id") @db.Uuid
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  authorId  String   @map("author_id") @db.Uuid
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  body      String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("task_comment")
+}
+
+model ProposedBacklogItem {
+  id        String  @id @default(uuid()) @db.Uuid
+  projectId String  @map("project_id") @db.Uuid
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  source    String
+  payload   Json
+  status    String
+
+  @@map("proposed_backlog_item")
+}
+
+model CostEvent {
+  id         String   @id @default(uuid()) @db.Uuid
+  agentId    String?  @map("agent_id") @db.Uuid
+  agent      Agent?   @relation("AgentCost", fields: [agentId], references: [id], onDelete: SetNull)
+  taskId     String?  @map("task_id") @db.Uuid
+  task       Task?    @relation("TaskCost", fields: [taskId], references: [id], onDelete: SetNull)
+  amount     Decimal  @db.Decimal(18, 4)
+  unit       String
+  occurredAt DateTime @default(now()) @map("occurred_at") @db.Timestamptz(6)
+
+  @@index([occurredAt])
+  @@map("cost_event")
+}
+
+model Budget {
+  id         String  @id @default(uuid()) @db.Uuid
+  scope      String
+  companyId  String? @map("company_id") @db.Uuid
+  company    Company? @relation("CompanyBudget", fields: [companyId], references: [id], onDelete: Cascade)
+  agentId    String? @map("agent_id") @db.Uuid
+  agent      Agent?  @relation("AgentBudget", fields: [agentId], references: [id], onDelete: Cascade)
+  monthlyCap Decimal? @map("monthly_cap") @db.Decimal(18, 4)
+  policy     String  @default("alert")
+
+  @@map("budget")
+}
+
+model Approval {
+  id               String   @id @default(uuid()) @db.Uuid
+  type             String
+  subjectRef       String   @map("subject_ref")
+  state            String
+  approverUserId   String?  @map("approver_user_id") @db.Uuid
+  approver         User?    @relation(fields: [approverUserId], references: [id], onDelete: SetNull)
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("approval")
+}
+
+model ExecutionAdapter {
+  id      String  @id @default(uuid()) @db.Uuid
+  type    String
+  config  Json    @default("{}")
+  enabled Boolean @default(true)
+
+  @@map("execution_adapter")
+}
+
+model AuditEvent {
+  id           String   @id @default(uuid()) @db.Uuid
+  actorId      String   @map("actor_id") @db.Uuid
+  actor        User     @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  action       String
+  resourceRef  String   @map("resource_ref")
+  payloadHash  String?  @map("payload_hash")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([createdAt])
+  @@map("audit_event")
+}

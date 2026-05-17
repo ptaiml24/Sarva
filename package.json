@@ -1,0 +1,41 @@
+{
+  "name": "sarva",
+  "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ptaiml24/Sarva-private.git"
+  },
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "lint": "npm run lint -w @sarva/api && npm run lint -w @sarva/web",
+    "build": "npm run build -w @sarva/api && npm run build -w @sarva/web",
+    "test": "npm run test -w @sarva/api",
+    "e2e": "playwright test",
+    "e2e:local": "PW_NO_WEBSERVER=1 playwright test",
+    "playwright:install": "playwright install chromium",
+    "e2e:ui": "playwright test --ui",
+    "e2e:serve": "concurrently -k -n api,web -c blue,green \"npm run dev -w @sarva/api\" \"wait-on -t 120000 http-get://127.0.0.1:3000/health && npm run dev -w @sarva/web\"",
+    "dev:web": "npm run dev -w @sarva/web",
+    "dev:api": "npm run dev -w @sarva/api",
+    "db:migrate": "npm run db:migrate -w @sarva/api",
+    "db:seed": "npm run db:seed -w @sarva/api",
+    "db:clean-sample": "npm run db:clean-sample -w @sarva/api",
+    "db:purge-test-users": "npm run db:purge-test-users -w @sarva/api",
+    "db:generate": "npm run db:generate -w @sarva/api",
+    "db:setup": "npm run db:generate && npm run db:migrate && npm run db:seed",
+    "db:studio": "npm run db:studio -w @sarva/api",
+    "db:migrate:dev": "npm run db:migrate:dev -w @sarva/api"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.1",
+    "concurrently": "^9.2.1",
+    "typescript": "^5.7.3",
+    "wait-on": "^9.0.5"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

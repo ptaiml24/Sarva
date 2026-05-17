@@ -1,0 +1,17 @@
+# Optional local PostgreSQL for Sarva R1 API (if you do not use a native Postgres install).
+# See apps/api/README.md — native Postgres + npm run db:setup is fully supported.
+# Requirement reference: Requirement/SARVA-DESIGN.md (Part III — runtime stack).
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: sarva
+      POSTGRES_PASSWORD: sarva_dev
+      POSTGRES_DB: sarva
+    ports:
+      - "5432:5432"
+    volumes:
+      - sarva_pg_data:/var/lib/postgresql/data
+
+volumes:
+  sarva_pg_data:

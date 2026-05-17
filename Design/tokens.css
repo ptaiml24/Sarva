@@ -1,0 +1,92 @@
+/**
+ * Sarva — design tokens (source of truth for web UI)
+ * Consumed by: sarva-app.css, HTML mocks, future app shell.
+ * Dark theme default; light theme can override in a later phase.
+ */
+
+:root {
+  /* ——— Canvas ——— */
+  --sarva-bg: #0c0e12;
+  --sarva-surface: #141820;
+  --sarva-surface-elevated: #1a1f2a;
+  --sarva-border: #2a3142;
+  --sarva-banner-gradient-start: #1a2744;
+  --sarva-banner-gradient-end: #162036;
+
+  /* ——— Text ——— */
+  --sarva-text: #e8eaef;
+  --sarva-text-muted: #8b93a7;
+  --sarva-text-inverse: #ffffff;
+
+  /* ——— Brand / accent ——— */
+  --sarva-accent: #3d8bfd;
+  --sarva-accent-muted: rgba(61, 139, 253, 0.15);
+  --sarva-accent-secondary: #6366f1;
+
+  /* ——— Semantic states ——— */
+  --sarva-success: #34c759;
+  --sarva-success-bg: rgba(52, 199, 89, 0.15);
+  --sarva-warning: #ff9f0a;
+  --sarva-warning-bg: rgba(255, 159, 10, 0.15);
+  --sarva-danger: #ff453a;
+  --sarva-danger-bg: rgba(255, 69, 58, 0.15);
+  --sarva-phase2: #6366f1;
+  --sarva-phase2-bg: rgba(99, 102, 241, 0.06);
+
+  /* ——— Typography ——— */
+  --sarva-font-sans: "DM Sans", system-ui, sans-serif;
+  --sarva-font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --sarva-text-xs: 0.62rem;
+  --sarva-text-sm: 0.72rem;
+  --sarva-text-base: 0.82rem;
+  --sarva-text-md: 0.86rem;
+  --sarva-text-lg: 1.05rem;
+  --sarva-text-xl: 1.2rem;
+
+  --sarva-leading-tight: 1.35;
+  --sarva-leading-normal: 1.45;
+
+  --sarva-tracking-wide: 0.06em;
+  --sarva-tracking-wider: 0.1em;
+
+  /* ——— Radius ——— */
+  --sarva-radius-sm: 4px;
+  --sarva-radius-md: 6px;
+  --sarva-radius-lg: 8px;
+  --sarva-radius-xl: 10px;
+
+  /* ——— Spacing (4px grid) ——— */
+  --sarva-space-1: 0.25rem;
+  --sarva-space-2: 0.5rem;
+  --sarva-space-3: 0.75rem;
+  --sarva-space-4: 1rem;
+  --sarva-space-5: 1.25rem;
+  --sarva-space-6: 1.5rem;
+
+  /* ——— Layout ——— */
+  --sarva-sidebar-width: 258px;
+  --sarva-topbar-z: 5;
+  --sarva-sidebar-overlay-z: 30;
+
+  /* ——— Motion ——— */
+  --sarva-duration-fast: 120ms;
+  --sarva-ease-out: ease;
+
+  /* ——— Aliases (short names for CSS in mocks / app) ——— */
+  --bg: var(--sarva-bg);
+  --surface: var(--sarva-surface);
+  --surface2: var(--sarva-surface-elevated);
+  --border: var(--sarva-border);
+  --text: var(--sarva-text);
+  --muted: var(--sarva-text-muted);
+  --accent: var(--sarva-accent);
+  --accent-dim: var(--sarva-accent-muted);
+  --success: var(--sarva-success);
+  --warning: var(--sarva-warning);
+  --danger: var(--sarva-danger);
+  --phase2: var(--sarva-phase2);
+  --radius: var(--sarva-radius-xl);
+  --font: var(--sarva-font-sans);
+  --mono: var(--sarva-font-mono);
+}

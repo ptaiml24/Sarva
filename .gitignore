@@ -1,0 +1,27 @@
+.DS_Store
+node_modules/
+dist/
+.env
+.env.local
+coverage/
+test-results/
+*.log
+apps/api/prisma/*.db
+apps/api/prisma/*.db-journal
+apps/web/.vite/
+
+# Local agent/workspace sandbox (games, demos) — do not publish to the repo root.
+workspace/
+
+# Cursor IDE — keep local only (never publish workspace rules from OSS drops)
+.cursor/
+
+# Archived requirements lineage (split R1 docs, HTML mocks): keep locally; not published — see Requirement/README.md
+Requirement/archive/
+
+# Legacy MRD / Word artifacts — optional local-only
+Requirement/*.docx
+
+# Workspace-scoped demos; `workspace/` is not tracked — workflows would no-op without that tree
+.github/workflows/deploy-tetris-pages.yml
+.github/workflows/ci-block-blast.yml

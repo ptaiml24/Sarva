@@ -1,0 +1,61 @@
+/**
+ * Built-in skill template prompts (`skill_template.code` → default agent_prompt body).
+ * Consumed via `config/defaultSkillPrompts.ts` for API merge + seed backfill.
+ */
+
+import { ANALYZER_SKILL_AGENT_PROMPT } from "./analyzer.js";
+import { ARCHITECT_SKILL_AGENT_PROMPT } from "./architect.js";
+import { AUTOMATOR_SKILL_AGENT_PROMPT } from "./automator.js";
+import { BREAKER_SKILL_AGENT_PROMPT } from "./breaker.js";
+import { BUG_DOCUMENTER_SKILL_AGENT_PROMPT } from "./bug-documenter.js";
+import { CODE_REVIEWER_SKILL_AGENT_PROMPT } from "./code-reviewer.js";
+import { CODER_SKILL_AGENT_PROMPT } from "./coder.js";
+import { COORDINATOR_SKILL_AGENT_PROMPT } from "./coordinator.js";
+import { DEBUGGER_SKILL_AGENT_PROMPT } from "./debugger.js";
+import { DEPLOYER_SKILL_AGENT_PROMPT } from "./deployer.js";
+import { DOC_WRITER_SKILL_AGENT_PROMPT } from "./doc-writer.js";
+import { DOCUMENT_REVIEWER_SKILL_AGENT_PROMPT } from "./document-reviewer.js";
+import { MEDIATOR_SKILL_AGENT_PROMPT } from "./mediator.js";
+import { MITIGATOR_SKILL_AGENT_PROMPT } from "./mitigator.js";
+import { PLANNER_SKILL_AGENT_PROMPT } from "./planner.js";
+import { PRIORITIZER_SKILL_AGENT_PROMPT } from "./prioritizer.js";
+import { RESEARCHER_SKILL_AGENT_PROMPT } from "./researcher.js";
+import { SCHEDULER_SKILL_AGENT_PROMPT } from "./scheduler.js";
+import { STORYTELLER_SKILL_AGENT_PROMPT } from "./storyteller.js";
+import { STRATEGIST_SKILL_AGENT_PROMPT } from "./strategist.js";
+import { TECH_DOC_WRITER_SKILL_AGENT_PROMPT } from "./tech-doc-writer.js";
+import { TESTER_SKILL_AGENT_PROMPT } from "./tester.js";
+import { TESTWRITER_SKILL_AGENT_PROMPT } from "./testwriter.js";
+import { TRACKER_SKILL_AGENT_PROMPT } from "./tracker.js";
+import { VALIDATOR_SKILL_AGENT_PROMPT } from "./validator.js";
+import { VISIONARY_SKILL_AGENT_PROMPT } from "./visionary.js";
+
+/** Maps Sarva catalog skill codes to canonical built-in prompts. */
+export const skillBuiltinPromptsByCode: Record<string, string> = {
+  ANALYZER: ANALYZER_SKILL_AGENT_PROMPT,
+  ARCHITECT: ARCHITECT_SKILL_AGENT_PROMPT,
+  AUTOMATOR: AUTOMATOR_SKILL_AGENT_PROMPT,
+  BREAKER: BREAKER_SKILL_AGENT_PROMPT,
+  BUG_DOCUMENTER: BUG_DOCUMENTER_SKILL_AGENT_PROMPT,
+  CODE_REVIEWER: CODE_REVIEWER_SKILL_AGENT_PROMPT,
+  CODER: CODER_SKILL_AGENT_PROMPT,
+  COORDINATOR: COORDINATOR_SKILL_AGENT_PROMPT,
+  DEBUGGER: DEBUGGER_SKILL_AGENT_PROMPT,
+  DEPLOYER: DEPLOYER_SKILL_AGENT_PROMPT,
+  DOC_WRITER: DOC_WRITER_SKILL_AGENT_PROMPT,
+  DOCUMENT_REVIEWER: DOCUMENT_REVIEWER_SKILL_AGENT_PROMPT,
+  MEDIATOR: MEDIATOR_SKILL_AGENT_PROMPT,
+  MITIGATOR: MITIGATOR_SKILL_AGENT_PROMPT,
+  PLANNER: PLANNER_SKILL_AGENT_PROMPT,
+  PRIORITIZER: PRIORITIZER_SKILL_AGENT_PROMPT,
+  RESEARCHER: RESEARCHER_SKILL_AGENT_PROMPT,
+  SCHEDULER: SCHEDULER_SKILL_AGENT_PROMPT,
+  STORYTELLER: STORYTELLER_SKILL_AGENT_PROMPT,
+  STRATEGIST: STRATEGIST_SKILL_AGENT_PROMPT,
+  TECH_DOC_WRITER: TECH_DOC_WRITER_SKILL_AGENT_PROMPT,
+  TESTER: TESTER_SKILL_AGENT_PROMPT,
+  TESTWRITER: TESTWRITER_SKILL_AGENT_PROMPT,
+  TRACKER: TRACKER_SKILL_AGENT_PROMPT,
+  VALIDATOR: VALIDATOR_SKILL_AGENT_PROMPT,
+  VISIONARY: VISIONARY_SKILL_AGENT_PROMPT,
+};
