@@ -49,6 +49,7 @@ jobs:
 
   e2e:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     needs: api
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -85,7 +86,19 @@ jobs:
         run: npx prisma migrate deploy --schema apps/api/prisma/schema.prisma
       - name: Seed
         run: npm run db:seed
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+      - name: Playwright cache status
+        run: |
+          echo "playwright-cache-hit=${{ steps.playwright-cache.outputs.cache-hit }}"
+      - name: Install Playwright system dependencies
+        run: npx playwright install-deps chromium
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: timeout 15m npx playwright install chromium
       - name: E2E
         run: npm run e2e

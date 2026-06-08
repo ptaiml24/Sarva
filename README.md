@@ -4,7 +4,7 @@
 
 Under that lifecycle is modeled structure: **business units**, **teams**, **seat** placements tying **roles** to **skills**, **agents**, configurable **LLM providers + model bindings**, budgets—with **humans** accountable for merges, approvals, policy, governance, spend.
 
-What **this repo** ships is **not** turnkey SaaS: a **thin, runnable slice** of that story as **Fastify + Postgres (Prisma) + React/Vite**, with **`Requirement/`** specs and **`docs/`** onboarding. Expect a **prototype / learning baseline**, not hardened production.
+R1 ships a functional slice of the full Sarva vision. Core SDLC workflows, multi-agent orchestration, and LLM bindings are operational. See [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md) to run locally.
 
 **Repository:** [github.com/ptaiml24/Sarva](https://github.com/ptaiml24/Sarva).
 
