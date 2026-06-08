@@ -129,12 +129,9 @@ export const SUPPORTED_LLM_PROVIDERS: LlmProviderTemplate[] = [
         description: "Git ref for cloud clone (default main)",
       },
     ],
-    modelPresets: [
-      { modelId: "auto", label: "Server default (auto)" },
-      { modelId: "composer-2", label: "Composer 2" },
-    ],
+    modelPresets: [{ modelId: "auto", label: "Server default (auto)" }],
     modelIdHint:
-      "Use `Cursor.models.list()` or docs; leave a preset or use **auto**. For cloud runs, set connection **Base URL** to an `https://` Git repo URL (or set CURSOR_CLOUD_REPO_URL on the API host).",
+      "Model list is loaded from **Cursor.models.list()** for your API key (Admin → **Load models from Cursor**, or set **CURSOR_API_KEY** on the API host). New Composer releases appear automatically after refresh. For cloud runs, set connection **Base URL** to an `https://` Git repo URL (or set CURSOR_CLOUD_REPO_URL on the API host).",
   },
 ];
 

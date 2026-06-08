@@ -1,4 +1,4 @@
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { api } from "../api/http.js";
 
@@ -123,8 +123,12 @@ export function AdminPage() {
   const [pcUseCustomModel, setPcUseCustomModel] = useState(false);
   const [pcBaseUrl, setPcBaseUrl] = useState("");
   const [pcApiKey, setPcApiKey] = useState("");
+  const pcApiKeyRef = useRef(pcApiKey);
+  pcApiKeyRef.current = pcApiKey;
   const [ollamaInstalledModels, setOllamaInstalledModels] = useState<string[]>([]);
   const [ollamaListLoading, setOllamaListLoading] = useState(false);
+  const [cursorModelPresets, setCursorModelPresets] = useState<{ modelId: string; label: string }[]>([]);
+  const [cursorListLoading, setCursorListLoading] = useState(false);
 
   const [ghOwnerLogin, setGhOwnerLogin] = useState("");
   const [ghIsOrg, setGhIsOrg] = useState(false);
@@ -198,19 +202,21 @@ export function AdminPage() {
 
   useEffect(() => {
     if (pcProviderId !== "ollama") setOllamaInstalledModels([]);
+    if (pcProviderId !== "cursor") setCursorModelPresets([]);
   }, [pcProviderId]);
 
   useEffect(() => {
     const p = llmProviders.find((x) => x.id === pcProviderId);
     const catalogIds = p?.modelPresets.map((m) => m.modelId) ?? [];
     const ollamaIds = pcProviderId === "ollama" ? ollamaInstalledModels : [];
-    const allIds = [...new Set([...ollamaIds, ...catalogIds])];
+    const cursorIds = pcProviderId === "cursor" ? cursorModelPresets.map((m) => m.modelId) : [];
+    const allIds = [...new Set([...ollamaIds, ...cursorIds, ...catalogIds])];
     if (allIds.length === 0) return;
     if (!pcUseCustomModel) {
       const first = allIds[0];
       setPcModelId((prev) => (allIds.includes(prev) ? prev : first));
     }
-  }, [pcProviderId, llmProviders, pcUseCustomModel, ollamaInstalledModels]);
+  }, [pcProviderId, llmProviders, pcUseCustomModel, ollamaInstalledModels, cursorModelPresets]);
 
   useEffect(() => {
     if (!llmConnections.length) {
@@ -256,6 +262,34 @@ export function AdminPage() {
       setOllamaListLoading(false);
     }
   }
+
+  const refreshCursorModels = useCallback(async () => {
+    setCursorListLoading(true);
+    setErr(null);
+    try {
+      const keyQ =
+        pcApiKeyRef.current.trim() ? `?apiKey=${encodeURIComponent(pcApiKeyRef.current.trim())}` : "";
+      const res = await api<{ models: { modelId: string; label: string }[] }>(
+        `/api/v1/integrations/cursor-models${keyQ}`
+      );
+      setCursorModelPresets(res.models);
+      const cursorCount = res.models.filter((m) => m.modelId !== "auto").length;
+      setMsg(
+        cursorCount > 0
+          ? `Loaded ${cursorCount} Cursor model(s) (+ auto).`
+          : "Cursor returned no models for this key — check the API key and try again."
+      );
+      if (res.models.length && !pcUseCustomModel) {
+        const ids = res.models.map((m) => m.modelId);
+        setPcModelId((prev) => (ids.includes(prev) ? prev : res.models[0].modelId));
+      }
+    } catch (ex) {
+      setErr(ex instanceof Error ? ex.message : "Failed to list Cursor models");
+      setCursorModelPresets([]);
+    } finally {
+      setCursorListLoading(false);
+    }
+  }, [pcUseCustomModel]);
 
   async function onAddProviderConnection(e: FormEvent) {
     e.preventDefault();
@@ -738,6 +772,18 @@ export function AdminPage() {
                   ))}
                 </select>
               </label>
+              {pcProviderId === "cursor" || pcProviderId === "ollama" ? (
+                <label style={{ flex: "1 1 14rem" }}>
+                  API key / token
+                  <input
+                    type="password"
+                    autoComplete="off"
+                    value={pcApiKey}
+                    onChange={(e) => setPcApiKey(e.target.value)}
+                    placeholder={pcProviderId === "cursor" ? "Cursor Dashboard → Integrations" : "Optional for Ollama"}
+                  />
+                </label>
+              ) : null}
               {pcProviderId === "ollama" ? (
                 <div style={{ flex: "1 1 100%", marginBottom: "0.35rem" }}>
                   <button
@@ -748,6 +794,21 @@ export function AdminPage() {
                   >
                     {ollamaListLoading ? "Loading…" : "Load installed models"}
                   </button>
+                </div>
+              ) : null}
+              {pcProviderId === "cursor" ? (
+                <div style={{ flex: "1 1 100%", marginBottom: "0.35rem" }}>
+                  <button
+                    type="button"
+                    className="secondary"
+                    disabled={cursorListLoading}
+                    onClick={() => void refreshCursorModels()}
+                  >
+                    {cursorListLoading ? "Loading…" : "Load models from Cursor"}
+                  </button>
+                  <span className="muted" style={{ display: "block", fontSize: "0.82rem", marginTop: "0.35rem" }}>
+                    Enter your API key first, or set <code>CURSOR_API_KEY</code> on the API host. New Composer versions appear after refresh.
+                  </span>
                 </div>
               ) : null}
               <label>
@@ -770,6 +831,8 @@ export function AdminPage() {
                     const installed =
                       pcProviderId === "ollama"
                         ? ollamaInstalledModels.map((name) => ({ modelId: name, label: `${name} (installed)` }))
+                      : pcProviderId === "cursor"
+                        ? cursorModelPresets.map((m) => ({ modelId: m.modelId, label: m.label }))
                         : [];
                     const seen = new Set<string>();
                     const rows: { modelId: string; label: string }[] = [];
@@ -795,15 +858,17 @@ export function AdminPage() {
               ) : null}
             </div>
             <div className="row" style={{ marginTop: "0.5rem", flexWrap: "wrap", alignItems: "flex-end" }}>
-              <label>
-                API key / token
-                <input
-                  type="password"
-                  autoComplete="off"
-                  value={pcApiKey}
-                  onChange={(e) => setPcApiKey(e.target.value)}
-                />
-              </label>
+              {pcProviderId !== "cursor" && pcProviderId !== "ollama" ? (
+                <label>
+                  API key / token
+                  <input
+                    type="password"
+                    autoComplete="off"
+                    value={pcApiKey}
+                    onChange={(e) => setPcApiKey(e.target.value)}
+                  />
+                </label>
+              ) : null}
               <label>
                 Base URL (optional — for Ollama / local OpenAI-compatible APIs)
                 <input

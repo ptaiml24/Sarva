@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import type { Env } from "../config/env.js";
 import { allTrackedLlmEnvKeys, SUPPORTED_LLM_PROVIDERS } from "../config/supportedLlmProviders.js";
+import { fetchCursorModelPresets } from "../integrations/llm/cursorModelDiscovery.js";
 import { fetchOllamaInstalledModelNames } from "../integrations/llm/ollamaDiscovery.js";
 import { createAuthPreHandler } from "../plugins/auth.js";
 import { requireAdmin } from "../lib/authz.js";
@@ -13,9 +14,21 @@ export function integrationRoutes(env: Env): FastifyPluginAsync {
   const auth = createAuthPreHandler(env);
   return async (app) => {
     /** Curated provider + model presets for Admin (secrets stay in env only). */
-    app.get("/api/v1/integrations/llm-catalog", { preHandler: auth }, async () => ({
-      providers: SUPPORTED_LLM_PROVIDERS,
-    }));
+    app.get("/api/v1/integrations/llm-catalog", { preHandler: auth }, async () => {
+      const providers = SUPPORTED_LLM_PROVIDERS.map((p) => ({ ...p, modelPresets: [...p.modelPresets] }));
+      const cursorKey = process.env.CURSOR_API_KEY?.trim();
+      if (cursorKey) {
+        const cursor = providers.find((p) => p.id === "cursor");
+        if (cursor) {
+          try {
+            cursor.modelPresets = await fetchCursorModelPresets(cursorKey);
+          } catch {
+            /* keep static fallback presets when list fails */
+          }
+        }
+      }
+      return { providers };
+    });
 
     /** Which LLM-related env vars are set (boolean only; never returns secret values). Admin only. */
     app.get("/api/v1/integrations/llm-env-status", { preHandler: auth }, async (request, reply) => {
@@ -34,6 +47,30 @@ export function integrationRoutes(env: Env): FastifyPluginAsync {
      * Lists tags from a running Ollama instance (GET /api/tags). Server-side call from the API host — use Base URL
      * that reaches Ollama from this process (e.g. http://127.0.0.1:11434). Admin only; host allowlist in ollamaDiscovery.
      */
+    /**
+     * Lists models from Cursor for the given API key (or server CURSOR_API_KEY). Admin only.
+     * Uses Cursor.models.list() so new models (e.g. Composer 3.0) appear without a Sarva release.
+     */
+    app.get("/api/v1/integrations/cursor-models", { preHandler: auth }, async (request, reply) => {
+      if (!requireAdmin(request, reply)) return;
+      const q = z
+        .object({
+          apiKey: z.string().optional(),
+        })
+        .safeParse(request.query);
+      if (!q.success) {
+        return reply.status(400).send({ error: { code: "VALIDATION", message: q.error.message } });
+      }
+      const apiKey = q.data.apiKey?.trim() || process.env.CURSOR_API_KEY?.trim() || "";
+      try {
+        const models = await fetchCursorModelPresets(apiKey);
+        return { models, source: "cursor.models.list" };
+      } catch (e) {
+        const message = e instanceof Error ? e.message : "Failed to list Cursor models";
+        return reply.status(400).send({ error: { code: "CURSOR_LIST_FAILED", message } });
+      }
+    });
+
     app.get("/api/v1/integrations/ollama-models", { preHandler: auth }, async (request, reply) => {
       if (!requireAdmin(request, reply)) return;
       const q = z
